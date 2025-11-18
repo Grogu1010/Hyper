@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>NovaSurf – Experimental HTML Browser</title>
+  <title>Hyper</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     * {
@@ -281,7 +281,7 @@
     .main {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 10px;
       margin-top: 8px;
       min-height: 0;
@@ -503,7 +503,7 @@
         <div class="dot yellow"></div>
         <div class="dot green"></div>
       </div>
-      <div class="app-title">NovaSurf · Experimental HTML Browser</div>
+      <div class="app-title">Hyper · Experimental HTML Browser</div>
       <div class="pill mini-label">Prototype · Local Only</div>
     </div>
 
@@ -728,7 +728,7 @@
           return "https://" + input;
         }
         const q = encodeURIComponent(input);
-        return "https://duckduckgo.com/?q=" + q;
+        return "https://www.google.com/search?q=" + q;
       }
     }
 
@@ -896,7 +896,7 @@
         const tab = getActiveTab();
         const src = view.src;
         const u = new URL(src);
-        const title = u.hostname.replace(/^www\./, "") + " – NovaSurf";
+        const title = u.hostname.replace(/^www\./, "") + " – Hyper";
         if (tab) {
           tab.title = title;
           renderTabs();
