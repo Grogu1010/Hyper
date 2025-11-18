@@ -2,927 +2,264 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hyper – Experimental HTML Browser</title>
+  <title>Hyper Browser</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
     body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
-      background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #000 100%);
+      background: #0f172a;
       color: #e5e7eb;
     }
 
-    .browser-shell {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 12px;
-      gap: 8px;
-    }
-
-    /* Top bar */
-    .top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 6px 10px;
-      background: rgba(15,23,42,0.95);
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.35);
-      box-shadow: 0 18px 50px rgba(0,0,0,0.55);
-      backdrop-filter: blur(14px);
-    }
-
-    .window-dots {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-    }
-
-    .dot.red { background: #f87171; }
-    .dot.yellow { background: #facc15; }
-    .dot.green { background: #4ade80; }
-
-    .app-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: .16em;
-      color: #9ca3af;
-    }
-
-    /* Tab strip */
+    /* Tabs */
     .tab-strip {
       display: flex;
-      align-items: center;
       gap: 6px;
-      padding: 4px 2px 0;
+      padding: 8px;
+      background: #1f2933;
       overflow-x: auto;
-      scrollbar-width: none;
     }
-
-    .tab-strip::-webkit-scrollbar {
-      display: none;
-    }
-
     .tab {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.8);
-      border: 1px solid transparent;
-      color: #9ca3af;
-      font-size: 12px;
-      cursor: pointer;
-      white-space: nowrap;
-      max-width: 220px;
-    }
-
-    .tab.active {
-      background: radial-gradient(circle at top left, #0ea5e9, #1d4ed8 40%, #020617 100%);
-      border-color: rgba(191,219,254,0.7);
-      color: white;
-      box-shadow: 0 12px 32px rgba(37,99,235,0.55);
-    }
-
-    .tab-favicon {
-      width: 14px;
-      height: 14px;
-      border-radius: 4px;
-      background: radial-gradient(circle at 20% 0, #e0f2fe 0, #38bdf8 30%, #1e3a8a 100%);
-      flex-shrink: 0;
-    }
-
-    .tab-title {
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .tab-close {
-      font-size: 11px;
-      opacity: 0.7;
-    }
-
-    .tab-close:hover {
-      opacity: 1;
-    }
-
-    .tab.new-tab {
-      min-width: 28px;
-      justify-content: center;
-      padding-inline: 6px;
-      background: transparent;
-      border: 1px dashed rgba(148,163,184,0.5);
-    }
-
-    /* Controls & address bar */
-    .controls-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 4px;
-    }
-
-    .pill {
-      border-radius: 999px;
-      background: rgba(15,23,42,0.9);
-      border: 1px solid rgba(55,65,81,0.9);
-      padding: 4px 8px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 13px;
-      color: #9ca3af;
-    }
-
-    .nav-buttons {
-      display: inline-flex;
-      gap: 4px;
-    }
-
-    .btn-icon {
-      width: 26px;
-      height: 26px;
-      border-radius: 999px;
-      border: none;
-      background: radial-gradient(circle at top, #0b1120, #020617);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #334155;
       color: #e5e7eb;
       cursor: pointer;
-      box-shadow: 0 8px 18px rgba(0,0,0,0.5);
-      transition: transform .08s ease, box-shadow .08s ease, background .12s ease, opacity .12s ease;
-    }
-
-    .btn-icon:disabled {
-      opacity: .35;
-      cursor: default;
-      box-shadow: none;
-    }
-
-    .btn-icon:not(:disabled):hover {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 28px rgba(0,0,0,0.7);
-    }
-
-    .btn-icon:not(:disabled):active {
-      transform: translateY(0);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
-    }
-
-    .btn-primary {
-      padding-inline: 12px;
-      gap: 6px;
+      white-space: nowrap;
       font-size: 13px;
     }
-
-    .btn-primary span:nth-child(1) {
-      font-size: 14px;
+    .tab.active {
+      background: #4b5563;
+      font-weight: 600;
+    }
+    .new-tab {
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #0ea5e9;
+      color: #020617;
+      cursor: pointer;
+      font-weight: 700;
     }
 
-    .address-shell {
-      flex: 1;
+    /* Controls + address bar */
+    .controls {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 2px;
-      margin-inline: 2px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,0.95);
-      background: radial-gradient(circle at top left, rgba(56,189,248,0.16), rgba(15,23,42,0.96));
-      box-shadow: inset 0 0 0 1px rgba(15,23,42,0.8);
+      gap: 8px;
+      padding: 8px;
+      background: #111827;
     }
 
-    .scheme-pill {
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .16em;
-      background: rgba(15,23,42,0.95);
-      border: 1px solid rgba(34,197,94,0.5);
-      color: #a7f3d0;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      flex-shrink: 0;
+    .btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      background: #1f2933;
+      border: none;
+      color: #e5e7eb;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
 
-    .scheme-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 8px rgba(34,197,94,0.65);
+    .lock {
+      font-size: 16px;
+      cursor: default;
+      user-select: none;
     }
 
     #urlInput {
       flex: 1;
-      border: none;
-      outline: none;
-      background: transparent;
-      color: #e5e7eb;
-      font-size: 13px;
-    }
-
-    #urlInput::placeholder {
-      color: #6b7280;
-    }
-
-    .chip-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      max-width: 260px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .chip-row::-webkit-scrollbar { display: none; }
-
-    .chip {
-      padding: 4px 9px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.9);
-      border: 1px solid rgba(55,65,81,0.9);
-      font-size: 11px;
-      color: #9ca3af;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: background .12s ease, color .12s ease, border .12s ease;
-    }
-
-    .chip:hover {
-      background: rgba(30,64,175,0.9);
-      border-color: rgba(129,140,248,0.9);
-      color: #e5e7eb;
-    }
-
-    /* Main layout */
-    .main {
-      flex: 1;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 10px;
-      margin-top: 8px;
-      min-height: 0;
-    }
-
-    .view-shell {
-      border-radius: 18px;
-      background: radial-gradient(circle at top, rgba(15,23,42,1), rgba(3,7,18,1));
-      border: 1px solid rgba(31,41,55,0.95);
-      box-shadow: 0 18px 50px rgba(0,0,0,0.7);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
       padding: 6px 10px;
-      font-size: 11px;
-      border-bottom: 1px solid rgba(31,41,55,0.95);
-      background: radial-gradient(circle at top left, rgba(59,130,246,0.25), rgba(15,23,42,0.98));
-    }
-
-    .view-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #9ca3af;
-    }
-
-    .badge {
-      padding: 2px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(156,163,175,0.7);
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: .13em;
+      border-radius: 6px;
+      border: none;
+      background: #020617;
       color: #e5e7eb;
-    }
-
-    .status-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .status-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 999px;
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34,197,94,0.7);
-      transition: background .15s ease, box-shadow .15s ease;
-    }
-
-    .status-dot.loading {
-      background: #f97316;
-      box-shadow: 0 0 10px rgba(251,146,60,0.7);
+      outline: none;
+      font-size: 14px;
     }
 
     iframe {
-      border: none;
       flex: 1;
       width: 100%;
-      background: #020617;
-    }
-
-    /* Side panel */
-    .side-panel {
-      border-radius: 18px;
-      background: radial-gradient(circle at top right, rgba(56,189,248,0.07), rgba(15,23,42,0.98));
-      border: 1px solid rgba(31,41,55,0.95);
-      box-shadow: 0 16px 42px rgba(0,0,0,0.75);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-height: 0;
-    }
-
-    .panel-section {
-      border-radius: 14px;
-      border: 1px solid rgba(31,41,55,0.9);
-      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), rgba(15,23,42,1));
-      padding: 8px 9px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .16em;
-      color: #9ca3af;
-    }
-
-    .section-header span strong {
-      color: #e5e7eb;
-    }
-
-    .history-list, .session-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      max-height: 120px;
-      overflow-y: auto;
-      padding-right: 4px;
-      scrollbar-width: thin;
-    }
-
-    .history-item, .session-item {
-      font-size: 12px;
-      color: #9ca3af;
-      padding: 4px 6px;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background .12s ease, color .12s ease;
-    }
-
-    .history-item:hover, .session-item:hover {
-      background: rgba(30,64,175,0.7);
-      color: #e5e7eb;
-    }
-
-    .history-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(148,163,184,0.7);
-      flex-shrink: 0;
-    }
-
-    .mini-label {
-      font-size: 10px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: .16em;
-    }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #9ca3af;
-    }
-
-    .stat-row span.value {
-      color: #e5e7eb;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .toggle-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-
-    .toggle-pill {
-      font-size: 11px;
-      padding: 4px 7px;
-      border-radius: 999px;
-      border: 1px solid rgba(55,65,81,0.9);
-      color: #9ca3af;
-      cursor: pointer;
-    }
-
-    .toggle-pill.active {
-      background: rgba(22,163,74,0.1);
-      border-color: rgba(34,197,94,0.7);
-      color: #a7f3d0;
-    }
-
-    /* Responsive */
-    @media (max-width: 1024px) {
-      .browser-shell {
-        max-width: 100%;
-        padding: 8px;
-      }
-      .main {
-        grid-template-columns: minmax(0, 1fr);
-      }
-      .side-panel {
-        order: -1;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .controls-row {
-        flex-wrap: wrap;
-      }
-      .chip-row {
-        max-width: 100%;
-      }
-      .side-panel {
-        display: none;
-      }
+      border: none;
+      background: #000;
     }
   </style>
 </head>
 <body>
-  <div class="browser-shell">
-    <!-- Top window bar -->
-    <div class="top-bar">
-      <div class="window-dots">
-        <div class="dot red"></div>
-        <div class="dot yellow"></div>
-        <div class="dot green"></div>
-      </div>
-      <div class="app-title">Hyper · Experimental HTML Browser</div>
-      <div class="pill mini-label">Prototype · Local Only</div>
-    </div>
 
-    <!-- Tabs -->
-    <div class="tab-strip" id="tabStrip">
-      <!-- Tabs will be injected here -->
-    </div>
+  <!-- Tabs -->
+  <div class="tab-strip" id="tabStrip"></div>
 
-    <!-- Controls + address bar -->
-    <div class="controls-row">
-      <div class="pill">
-        <div class="nav-buttons">
-          <button class="btn-icon" id="backBtn" title="Back">
-            <span>⟵</span>
-          </button>
-          <button class="btn-icon" id="forwardBtn" title="Forward">
-            <span>⟶</span>
-          </button>
-          <button class="btn-icon" id="reloadBtn" title="Reload">
-            <span>⟳</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="address-shell">
-        <div class="scheme-pill" id="schemePill">
-          <div class="scheme-dot"></div>
-          <span>secure</span>
-        </div>
-        <input id="urlInput" type="text" placeholder="Search or type a URL (try: openai.com, wikipedia.org, mdn web docs)" autocomplete="off" />
-        <button class="btn-icon btn-primary" id="goBtn">
-          <span>↵</span><span>Go</span>
-        </button>
-      </div>
-
-      <div class="chip-row">
-        <button class="chip" data-quick="https://www.wikipedia.org">Wiki</button>
-        <button class="chip" data-quick="https://developer.mozilla.org">MDN</button>
-        <button class="chip" data-quick="https://news.ycombinator.com">HN</button>
-        <button class="chip" data-quick="https://duckduckgo.com">Search</button>
-      </div>
-    </div>
-
-    <!-- Main layout -->
-    <div class="main">
-      <div class="view-shell">
-        <div class="view-header">
-          <div class="view-meta">
-            <div class="badge">Live Preview</div>
-            <div class="mini-label">Origin: <span id="originLabel">—</span></div>
-          </div>
-          <div class="status-group">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Ready</span>
-          </div>
-        </div>
-        <iframe id="view" src="https://example.org"></iframe>
-      </div>
-
-      <aside class="side-panel">
-        <section class="panel-section">
-          <div class="section-header">
-            <span><strong>Smart</strong> History</span>
-            <span class="mini-label">Recent</span>
-          </div>
-          <ul class="history-list" id="historyList"></ul>
-        </section>
-
-        <section class="panel-section">
-          <div class="section-header">
-            <span><strong>Session</strong> Stats</span>
-            <span class="mini-label">Live</span>
-          </div>
-          <div class="stat-row">
-            <span>Pages visited</span>
-            <span class="value" id="statPages">0</span>
-          </div>
-          <div class="stat-row">
-            <span>Open tabs</span>
-            <span class="value" id="statTabs">1</span>
-          </div>
-          <div class="stat-row">
-            <span>Current host</span>
-            <span class="value" id="statHost">—</span>
-          </div>
-        </section>
-
-        <section class="panel-section">
-          <div class="section-header">
-            <span><strong>Modes</strong> & Toggles</span>
-            <span class="mini-label">Local</span>
-          </div>
-          <div class="toggle-row">
-            <button class="toggle-pill active" data-toggle="safeMode">Safe mode</button>
-            <button class="toggle-pill" data-toggle="focusMode">Focus mode</button>
-            <button class="toggle-pill" data-toggle="minimalUI">Minimal UI</button>
-          </div>
-          <p style="font-size:11px;color:#6b7280;margin-top:4px;">Toggles are cosmetic in this prototype – wired up for expansion.</p>
-        </section>
-      </aside>
-    </div>
+  <!-- Controls + address bar -->
+  <div class="controls">
+    <button class="btn" id="backBtn">⟵</button>
+    <button class="btn" id="forwardBtn">⟶</button>
+    <button class="btn" id="reloadBtn">⟳</button>
+    <span class="lock" id="lockIcon" title="This site is secure (HTTPS)">🔒</span>
+    <input id="urlInput" type="text" placeholder="Search or enter URL..." />
   </div>
 
+  <!-- Page area -->
+  <iframe id="view" src="https://google.com"></iframe>
+
   <script>
-    // --- State ---
     const TABS = [];
-    let activeTabId = null;
+    let activeTab = null;
 
-    const backBtn = document.getElementById("backBtn");
+    const tabStrip   = document.getElementById("tabStrip");
+    const urlInput   = document.getElementById("urlInput");
+    const view       = document.getElementById("view");
+    const backBtn    = document.getElementById("backBtn");
     const forwardBtn = document.getElementById("forwardBtn");
-    const reloadBtn = document.getElementById("reloadBtn");
-    const goBtn = document.getElementById("goBtn");
-    const urlInput = document.getElementById("urlInput");
-    const view = document.getElementById("view");
-    const statusDot = document.getElementById("statusDot");
-    const statusText = document.getElementById("statusText");
-    const originLabel = document.getElementById("originLabel");
-    const historyList = document.getElementById("historyList");
-    const statPages = document.getElementById("statPages");
-    const statTabs = document.getElementById("statTabs");
-    const statHost = document.getElementById("statHost");
-    const schemePill = document.getElementById("schemePill");
-    const tabStrip = document.getElementById("tabStrip");
+    const reloadBtn  = document.getElementById("reloadBtn");
+    const lockIcon   = document.getElementById("lockIcon");
 
-    const MAX_HISTORY_ITEMS = 30;
-
-    function createTab(initialUrl, title) {
-      const id = "tab-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-      const tabState = {
+    // ---- Tabs ----
+    function newTab(url) {
+      const id = "tab-" + Math.random().toString(16).slice(2);
+      const tab = {
         id,
-        history: [],
-        index: -1,
-        title: title || "New Tab",
-        visits: 0,
+        history: [url],
+        index: 0,
+        title: "New Tab",
       };
-      TABS.push(tabState);
-      renderTabs();
+      TABS.push(tab);
       setActiveTab(id);
-      navigateTo(initialUrl, { addToHistory: true });
-    }
-
-    function getActiveTab() {
-      return TABS.find(t => t.id === activeTabId) || null;
+      renderTabs();
+      load(url, false);
     }
 
     function setActiveTab(id) {
-      activeTabId = id;
+      activeTab = TABS.find(t => t.id === id);
       renderTabs();
-      const tab = getActiveTab();
-      if (tab && tab.index >= 0) {
-        const currentUrl = tab.history[tab.index];
-        if (currentUrl) {
-          view.src = currentUrl;
-          urlInput.value = currentUrl;
-          updateOriginAndStats(currentUrl);
-        }
-      }
-      updateNavButtons();
-    }
-
-    function closeTab(id) {
-      const idx = TABS.findIndex(t => t.id === id);
-      if (idx === -1) return;
-      TABS.splice(idx, 1);
-      if (TABS.length === 0) {
-        createTab("https://example.org", "Home");
-      } else {
-        const nextIndex = Math.max(0, idx - 1);
-        setActiveTab(TABS[nextIndex].id);
-      }
-      renderTabs();
-      statTabs.textContent = TABS.length;
+      if (!activeTab) return;
+      const currentUrl = activeTab.history[activeTab.index];
+      load(currentUrl, false);
     }
 
     function renderTabs() {
       tabStrip.innerHTML = "";
-      TABS.forEach(tab => {
-        const el = document.createElement("button");
-        el.className = "tab" + (tab.id === activeTabId ? " active" : "");
-        el.dataset.tabId = tab.id;
-        el.innerHTML = `
-          <div class="tab-favicon"></div>
-          <div class="tab-title">${tab.title}</div>
-          <div class="tab-close" data-close>✕</div>
-        `;
+      TABS.forEach(t => {
+        const el = document.createElement("div");
+        el.className = "tab" + (t === activeTab ? " active" : "");
+        el.textContent = t.title;
+        el.onclick = () => setActiveTab(t.id);
         tabStrip.appendChild(el);
       });
-      const newTabButton = document.createElement("button");
-      newTabButton.className = "tab new-tab";
-      newTabButton.id = "newTabBtn";
-      newTabButton.textContent = "+";
-      tabStrip.appendChild(newTabButton);
-      statTabs.textContent = TABS.length || 1;
+
+      const newBtn = document.createElement("div");
+      newBtn.className = "new-tab";
+      newBtn.textContent = "+";
+      newBtn.onclick = () => newTab("https://google.com");
+      tabStrip.appendChild(newBtn);
     }
 
-    tabStrip.addEventListener("click", (e) => {
-      const closeBtn = e.target.closest("[data-close]");
-      if (closeBtn) {
-        const tabEl = e.target.closest(".tab");
-        const id = tabEl?.dataset.tabId;
-        if (id) closeTab(id);
-        return;
-      }
-      const newTabBtn = e.target.closest("#newTabBtn");
-      if (newTabBtn) {
-        createTab("https://example.org", "New Tab");
-        return;
-      }
-      const tabEl = e.target.closest(".tab");
-      if (tabEl && tabEl.dataset.tabId) {
-        setActiveTab(tabEl.dataset.tabId);
-      }
-    });
-
+    // ---- URL handling ----
     function normalizeUrl(input) {
       input = input.trim();
-      if (!input) return null;
+      if (!input) return "https://google.com";
+
       try {
+        // Already a valid URL
         return new URL(input).toString();
-      } catch (e) {
-        if (/^[\w.-]+(\.[a-z]{2,})(\/.*)?$/i.test(input)) {
-          return "https://" + input;
-        }
-        const q = encodeURIComponent(input);
-        return "https://www.google.com/search?q=" + q;
+      } catch {}
+
+      // Looks like a bare domain
+      if (/^[\w.-]+\.[a-z]{2,}$/i.test(input)) {
+        return "https://" + input;
       }
+
+      // Otherwise treat as Google search
+      return "https://www.google.com/search?q=" + encodeURIComponent(input);
     }
 
-    function setStatus(text, loading = false) {
-      statusText.textContent = text;
-      if (loading) {
-        statusDot.classList.add("loading");
-      } else {
-        statusDot.classList.remove("loading");
+    // ---- Navigation ----
+    function load(raw, addHistory = true) {
+      if (!activeTab) return;
+      const url = normalizeUrl(raw);
+      view.src = url;
+      urlInput.value = url;
+      updateSecurity(url);
+
+      if (addHistory) {
+        activeTab.history.splice(activeTab.index + 1);
+        activeTab.history.push(url);
+        activeTab.index = activeTab.history.length - 1;
       }
+      updateButtons();
+      updateTabTitleFromUrl(activeTab, url);
     }
 
-    function updateOriginAndStats(url) {
-      try {
-        const u = new URL(url);
-        originLabel.textContent = u.origin;
-        statHost.textContent = u.hostname;
-        const secure = u.protocol === "https:";
-        schemePill.querySelector("span:last-child").textContent = secure ? "secure" : "not secure";
-        const dot = schemePill.querySelector(".scheme-dot");
-        if (secure) {
-          dot.style.background = "#22c55e";
-          dot.style.boxShadow = "0 0 8px rgba(34,197,94,0.65)";
-        } else {
-          dot.style.background = "#f97316";
-          dot.style.boxShadow = "0 0 8px rgba(251,146,60,0.7)";
-        }
-      } catch (e) {
-        originLabel.textContent = "—";
-        statHost.textContent = "—";
-      }
-    }
-
-    function updateNavButtons() {
-      const tab = getActiveTab();
-      if (!tab) {
+    function updateButtons() {
+      if (!activeTab) {
         backBtn.disabled = true;
         forwardBtn.disabled = true;
         reloadBtn.disabled = true;
         return;
       }
-      backBtn.disabled = tab.index <= 0;
-      forwardBtn.disabled = tab.index < 0 || tab.index >= tab.history.length - 1;
-      reloadBtn.disabled = tab.index < 0;
+      backBtn.disabled = activeTab.index <= 0;
+      forwardBtn.disabled = activeTab.index >= activeTab.history.length - 1;
+      reloadBtn.disabled = activeTab.history.length === 0;
     }
 
-    function pushHistory(url) {
-      const tab = getActiveTab();
-      if (!tab) return;
-      tab.history.splice(tab.index + 1);
-      tab.history.push(url);
-      tab.index = tab.history.length - 1;
-      tab.visits += 1;
-      statPages.textContent = String(Number(statPages.textContent || "0") + 1);
-      updateNavButtons();
-      updateHistorySidebar(url);
+    // ---- Security lock ----
+    function updateSecurity(url) {
+      const isSecure = url.startsWith("https://");
+      lockIcon.textContent = isSecure ? "🔒" : "🔓";
+      lockIcon.title = isSecure
+        ? "This site is secure (HTTPS)"
+        : "This site is not secure (uses plain HTTP)";
     }
 
-    function navigateTo(rawInput, options = {}) {
-      const { addToHistory = true } = options;
-      const url = normalizeUrl(rawInput);
-      if (!url) return;
-      setStatus("Loading " + url + "...", true);
-      view.src = url;
-      urlInput.value = url;
-      updateOriginAndStats(url);
-      if (addToHistory) {
-        pushHistory(url);
-      }
-    }
-
-    function updateHistorySidebar(url) {
+    // Simple tab title from hostname
+    function updateTabTitleFromUrl(tab, url) {
       try {
         const u = new URL(url);
-        const li = document.createElement("li");
-        li.className = "history-item";
-        li.dataset.url = url;
-        li.innerHTML = `
-          <div class="history-dot"></div>
-          <div style="flex:1;overflow:hidden;">
-            <div style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.hostname}</div>
-            <div style="font-size:10px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.pathname || "/"}</div>
-          </div>
-        `;
-        historyList.prepend(li);
-        while (historyList.children.length > MAX_HISTORY_ITEMS) {
-          historyList.removeChild(historyList.lastChild);
-        }
-      } catch (e) {
-        // ignore
+        tab.title = (u.hostname || "Page").replace(/^www\./, "");
+      } catch {
+        tab.title = "Page";
       }
+      renderTabs();
     }
 
-    historyList.addEventListener("click", (e) => {
-      const item = e.target.closest(".history-item");
-      if (!item) return;
-      const url = item.dataset.url;
-      if (url) navigateTo(url, { addToHistory: true });
-    });
+    // ---- Button handlers ----
+    backBtn.onclick = () => {
+      if (!activeTab || activeTab.index <= 0) return;
+      activeTab.index--;
+      const url = activeTab.history[activeTab.index];
+      load(url, false);
+    };
 
-    backBtn.addEventListener("click", () => {
-      const tab = getActiveTab();
-      if (!tab || tab.index <= 0) return;
-      tab.index -= 1;
-      const url = tab.history[tab.index];
-      if (url) {
-        setStatus("Loading " + url + "...", true);
-        view.src = url;
-        urlInput.value = url;
-        updateOriginAndStats(url);
-        updateNavButtons();
-      }
-    });
+    forwardBtn.onclick = () => {
+      if (!activeTab || activeTab.index >= activeTab.history.length - 1) return;
+      activeTab.index++;
+      const url = activeTab.history[activeTab.index];
+      load(url, false);
+    };
 
-    forwardBtn.addEventListener("click", () => {
-      const tab = getActiveTab();
-      if (!tab || tab.index >= tab.history.length - 1) return;
-      tab.index += 1;
-      const url = tab.history[tab.index];
-      if (url) {
-        setStatus("Loading " + url + "...", true);
-        view.src = url;
-        urlInput.value = url;
-        updateOriginAndStats(url);
-        updateNavButtons();
-      }
-    });
-
-    reloadBtn.addEventListener("click", () => {
-      const tab = getActiveTab();
-      if (!tab || tab.index < 0) return;
-      const url = tab.history[tab.index];
-      if (url) {
-        setStatus("Reloading...", true);
-        view.src = url;
-      }
-    });
-
-    goBtn.addEventListener("click", () => {
-      navigateTo(urlInput.value, { addToHistory: true });
-    });
+    reloadBtn.onclick = () => {
+      if (!activeTab) return;
+      const url = activeTab.history[activeTab.index];
+      load(url, false);
+    };
 
     urlInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
-        navigateTo(urlInput.value, { addToHistory: true });
+        load(urlInput.value, true);
       }
     });
 
-    document.querySelectorAll(".chip").forEach(chip => {
-      chip.addEventListener("click", () => {
-        const url = chip.dataset.quick;
-        if (url) navigateTo(url, { addToHistory: true });
-      });
-    });
-
-    document.querySelectorAll(".toggle-pill").forEach(toggle => {
-      toggle.addEventListener("click", () => {
-        toggle.classList.toggle("active");
-      });
-    });
-
-    view.addEventListener("load", () => {
-      setStatus("Done", false);
-      try {
-        const tab = getActiveTab();
-        const src = view.src;
-        const u = new URL(src);
-        const title = u.hostname.replace(/^www\./, "") + " – Hyper";
-        if (tab) {
-          tab.title = title;
-          renderTabs();
-        }
-      } catch (e) {
-        // ignore
-      }
-    });
-
-    (function init() {
-      statPages.textContent = "0";
-      statTabs.textContent = "1";
-      updateOriginAndStats(view.src);
-      setStatus("Ready", false);
-      const firstTab = {
-        id: "tab-initial",
-        history: [view.src],
-        index: 0,
-        title: "Home",
-        visits: 1,
-      };
-      TABS.push(firstTab);
-      activeTabId = firstTab.id;
-      renderTabs();
-      pushHistory(view.src);
-    })();
+    // ---- Init ----
+    newTab("https://google.com");
   </script>
 </body>
 </html>
