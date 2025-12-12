@@ -354,9 +354,25 @@
       height: 100%;
       border: none;
       background: #050508;
-      overflow: auto;
-      padding: 16px 18px;
-      box-sizing: border-box;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .browser-frame {
+      border: none;
+      flex: 1;
+      width: 100%;
+      background: #0b1020;
+    }
+
+    .content-status {
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.8);
+      display: none;
     }
 
     .content-message {
@@ -624,45 +640,106 @@
         viewEl.appendChild(box);
       }
 
-      function stripDangerousNodes(doc) {
-        doc.querySelectorAll("script").forEach((el) => el.remove());
-        doc.querySelectorAll("iframe").forEach((el) => el.remove());
-        return doc;
+      function createBrowserFrame() {
+        const iframe = document.createElement("iframe");
+        iframe.className = "browser-frame";
+        iframe.setAttribute(
+          "allow",
+          [
+            "accelerometer",
+            "autoplay",
+            "clipboard-write",
+            "encrypted-media",
+            "fullscreen",
+            "geolocation",
+            "microphone",
+            "camera",
+            "midi",
+          ].join("; ")
+        );
+        iframe.setAttribute(
+          "sandbox",
+          [
+            "allow-forms",
+            "allow-scripts",
+            "allow-same-origin",
+            "allow-popups",
+            "allow-popups-to-escape-sandbox",
+            "allow-top-navigation-by-user-activation",
+            "allow-downloads",
+          ].join(" ")
+        );
+        return iframe;
       }
 
-      function renderHtmlIntoView(viewEl, html, baseUrl, viaProxy) {
-        const parser = new DOMParser();
-        const doc = stripDangerousNodes(
-          parser.parseFromString(html, "text/html")
+      function ensureStatusEl(viewEl) {
+        let status = viewEl.querySelector(".content-status");
+        if (!status) {
+          status = document.createElement("div");
+          status.className = "content-status";
+          viewEl.prepend(status);
+        }
+        return status;
+      }
+
+      function safeFrameUrl(iframe) {
+        try {
+          return iframe.contentWindow.location.href;
+        } catch (err) {
+          return iframe.src || iframe.dataset.lastSetUrl || "";
+        }
+      }
+
+      let frameNavigationLock = false;
+
+      function handleFrameNavigation(tabId, url, sourceView) {
+        if (!tabId || !url) return;
+        const tab = getTab(tabId);
+        if (!tab) return;
+
+        const normalized = urlFromInput(url) || url;
+        if (!normalized) return;
+
+        if (frameNavigationLock) return;
+        frameNavigationLock = true;
+
+        if (tab.historyIndex < 0 || tab.history[tab.historyIndex] !== normalized) {
+          tab.history = tab.history.slice(0, tab.historyIndex + 1);
+          tab.history.push(normalized);
+          tab.historyIndex = tab.history.length - 1;
+        } else {
+          tab.history[tab.historyIndex] = normalized;
+        }
+
+        tab.currentUrl = normalized;
+        tab.title = prettifyTitleFromUrl(normalized);
+
+        if (tab.id === activeTabId) {
+          addressInputEl.value = normalized;
+        }
+
+        const siblingViews = splitContainerEl.querySelectorAll(
+          `.content-view[data-tab-id="${tabId}"]`
         );
-
-        const base = doc.createElement("base");
-        base.href = baseUrl;
-        doc.head.prepend(base);
-
-        viewEl.innerHTML = "";
-
-        if (viaProxy) {
-          const note = document.createElement("div");
-          note.className = "content-note";
-          note.textContent =
-            "Loaded via reader proxy because this site blocks direct embedding.";
-          viewEl.appendChild(note);
-        }
-
-        const bodyNodes = Array.from(doc.body.childNodes);
-        if (bodyNodes.length === 0) {
-          setViewerMessage(
-            viewEl,
-            "This page returned no visible content.",
-            "muted"
-          );
-          return;
-        }
-
-        bodyNodes.forEach((node) => {
-          viewEl.appendChild(document.importNode(node, true));
+        siblingViews.forEach((view) => {
+          if (view === sourceView) return;
+          const iframe = view.querySelector("iframe.browser-frame");
+          if (!iframe) return;
+          const currentSrc = iframe.src || iframe.dataset.lastSetUrl || "";
+          if (currentSrc !== normalized) {
+            const statusEl = ensureStatusEl(view);
+            statusEl.textContent = "Loading " + normalized + "...";
+            statusEl.style.display = "block";
+            iframe.dataset.lastSetUrl = normalized;
+            iframe.src = normalized;
+          }
         });
+
+        renderTabs();
+        updateNavButtons();
+        saveState();
+
+        frameNavigationLock = false;
       }
 
       async function renderContent(viewEl, url) {
@@ -679,32 +756,72 @@
           return;
         }
 
-        setViewerMessage(
-          viewEl,
-          "Loading " + escapeHtml(url) + "...",
-          "muted"
-        );
+        viewEl.innerHTML = "";
+        const statusEl = ensureStatusEl(viewEl);
+        const iframe = createBrowserFrame();
+        viewEl.appendChild(iframe);
+
+        iframe.addEventListener("load", () => {
+          const currentUrl = safeFrameUrl(iframe);
+          if (!currentUrl || currentUrl === iframe.dataset.lastSetUrl) {
+            return;
+          }
+          handleFrameNavigation(viewEl.dataset.tabId, currentUrl, viewEl);
+        });
 
         const attempts = [
           { url, viaProxy: false },
           { url: buildProxyUrl(url), viaProxy: true },
         ];
 
-        let lastError = null;
+        async function tryLoad(attempt) {
+          return new Promise((resolve) => {
+            const onLoad = () => {
+              if (viewEl.dataset.requestId !== requestId) return;
+              statusEl.textContent = attempt.viaProxy
+                ? "Loaded via reader proxy because this site blocks direct embedding."
+                : "";
+              statusEl.style.display = attempt.viaProxy ? "block" : "none";
+              resolve(true);
+            };
+
+            const onError = () => {
+              cleanup();
+              resolve(false);
+            };
+
+            const cleanup = () => {
+              iframe.removeEventListener("load", onLoadOnce);
+              iframe.removeEventListener("error", onError);
+              clearTimeout(timeoutId);
+            };
+
+            const timeoutId = setTimeout(() => {
+              cleanup();
+              resolve(false);
+            }, 4000);
+
+            const onLoadOnce = (event) => {
+              cleanup();
+              onLoad(event);
+            };
+
+            iframe.addEventListener("load", onLoadOnce, { once: true });
+            iframe.addEventListener("error", onError, { once: true });
+
+            iframe.dataset.lastSetUrl = attempt.url;
+            iframe.src = attempt.url;
+            statusEl.textContent = attempt.viaProxy
+              ? "Trying reader proxy..."
+              : "Loading " + attempt.url + "...";
+            statusEl.style.display = "block";
+          });
+        }
 
         for (const attempt of attempts) {
-          try {
-            const response = await fetch(attempt.url, { mode: "cors" });
-            if (!response.ok) {
-              throw new Error("HTTP " + response.status);
-            }
-            const html = await response.text();
-            if (viewEl.dataset.requestId !== requestId) return;
-            renderHtmlIntoView(viewEl, html, url, attempt.viaProxy);
-            return;
-          } catch (err) {
-            lastError = err;
-          }
+          const ok = await tryLoad(attempt);
+          if (viewEl.dataset.requestId !== requestId) return;
+          if (ok) return;
         }
 
         if (viewEl.dataset.requestId !== requestId) return;
@@ -712,9 +829,7 @@
           viewEl,
           `Could not load ${escapeHtml(
             url
-          )}. The site might block embedding or cross-origin access. You can try prefixing it with <code>https://r.jina.ai/</code> for a readable snapshot. <br/><br/>Last error: ${escapeHtml(
-            (lastError && lastError.message) || "unknown"
-          )}`,
+          )}. The site might block embedding or cross-origin access. You can try prefixing it with <code>https://r.jina.ai/</code> for a readable snapshot.`,
           "error"
         );
       }
