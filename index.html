@@ -348,11 +348,49 @@
       border-top: none;
     }
 
-    .split-panel iframe {
+    .content-view {
+      position: relative;
       width: 100%;
       height: 100%;
       border: none;
       background: #050508;
+      overflow: auto;
+      padding: 16px 18px;
+      box-sizing: border-box;
+    }
+
+    .content-message {
+      margin: 0 auto;
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px dashed rgba(129, 140, 248, 0.35);
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    .content-message.error {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(248, 113, 113, 0.55);
+    }
+
+    .content-message.muted {
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.3);
+      color: var(--muted);
+    }
+
+    .content-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      font-size: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
     }
 
     .split-panel::before {
@@ -371,13 +409,6 @@
     .split-panel.focused {
       outline: 1px solid rgba(59, 130, 246, 0.8);
       outline-offset: -1px;
-    }
-
-    .split-click-overlay {
-      position: absolute;
-      inset: 0;
-      cursor: pointer;
-      z-index: 1;
     }
 
     .split-resizer {
@@ -550,12 +581,14 @@
     (function () {
       const MAX_SPLITS = 5;
       const STORAGE_KEY = "miniBrowserState_v1";
+      const DEFAULT_HOME = "https://r.jina.ai/http://example.com";
 
       let tabs = [];
       let panels = [];
       let activeTabId = null;
       let activePanelId = null;
       let tabsLayout = "top"; // "top" | "left"
+      let renderRequestId = 0;
 
       const tabBarEl = document.getElementById("tab-bar");
       const splitContainerEl = document.getElementById("split-container");
@@ -571,6 +604,121 @@
       );
       const appEl = document.getElementById("app");
 
+      function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function buildProxyUrl(url) {
+        if (url.startsWith("https://r.jina.ai/")) return url;
+        return "https://r.jina.ai/" + url;
+      }
+
+      function setViewerMessage(viewEl, message, type = "info") {
+        const box = document.createElement("div");
+        box.className =
+          "content-message" + (type === "error" ? " error" : type === "muted" ? " muted" : "");
+        box.innerHTML = message;
+        viewEl.innerHTML = "";
+        viewEl.appendChild(box);
+      }
+
+      function stripDangerousNodes(doc) {
+        doc.querySelectorAll("script").forEach((el) => el.remove());
+        doc.querySelectorAll("iframe").forEach((el) => el.remove());
+        return doc;
+      }
+
+      function renderHtmlIntoView(viewEl, html, baseUrl, viaProxy) {
+        const parser = new DOMParser();
+        const doc = stripDangerousNodes(
+          parser.parseFromString(html, "text/html")
+        );
+
+        const base = doc.createElement("base");
+        base.href = baseUrl;
+        doc.head.prepend(base);
+
+        viewEl.innerHTML = "";
+
+        if (viaProxy) {
+          const note = document.createElement("div");
+          note.className = "content-note";
+          note.textContent =
+            "Loaded via reader proxy because this site blocks direct embedding.";
+          viewEl.appendChild(note);
+        }
+
+        const bodyNodes = Array.from(doc.body.childNodes);
+        if (bodyNodes.length === 0) {
+          setViewerMessage(
+            viewEl,
+            "This page returned no visible content.",
+            "muted"
+          );
+          return;
+        }
+
+        bodyNodes.forEach((node) => {
+          viewEl.appendChild(document.importNode(node, true));
+        });
+      }
+
+      async function renderContent(viewEl, url) {
+        const requestId = (++renderRequestId).toString();
+        viewEl.dataset.requestId = requestId;
+        viewEl.dataset.tabId = viewEl.dataset.tabId || "";
+
+        if (!url) {
+          setViewerMessage(
+            viewEl,
+            "No URL selected for this panel yet.",
+            "muted"
+          );
+          return;
+        }
+
+        setViewerMessage(
+          viewEl,
+          "Loading " + escapeHtml(url) + "...",
+          "muted"
+        );
+
+        const attempts = [
+          { url, viaProxy: false },
+          { url: buildProxyUrl(url), viaProxy: true },
+        ];
+
+        let lastError = null;
+
+        for (const attempt of attempts) {
+          try {
+            const response = await fetch(attempt.url, { mode: "cors" });
+            if (!response.ok) {
+              throw new Error("HTTP " + response.status);
+            }
+            const html = await response.text();
+            if (viewEl.dataset.requestId !== requestId) return;
+            renderHtmlIntoView(viewEl, html, url, attempt.viaProxy);
+            return;
+          } catch (err) {
+            lastError = err;
+          }
+        }
+
+        if (viewEl.dataset.requestId !== requestId) return;
+        setViewerMessage(
+          viewEl,
+          `Could not load ${escapeHtml(
+            url
+          )}. The site might block embedding or cross-origin access. You can try prefixing it with <code>https://r.jina.ai/</code> for a readable snapshot. <br/><br/>Last error: ${escapeHtml(
+            (lastError && lastError.message) || "unknown"
+          )}`,
+          "error"
+        );
+      }
+
       function createTab(title, url) {
         const id = "t" + Date.now() + "_" + Math.random().toString(16).slice(2);
         const tab = {
@@ -585,12 +733,7 @@
         if (url) {
           navigateInTab(tab.id, url, true);
         } else {
-          // Default: Google home
-          navigateInTab(
-            tab.id,
-            "https://www.google.com",
-            true
-          );
+          navigateInTab(tab.id, DEFAULT_HOME, true);
         }
 
         setActiveTab(tab.id);
@@ -714,15 +857,7 @@
         tab.currentUrl = url;
         tab.title = prettifyTitleFromUrl(url);
 
-        // Update iframes that show this tab
-        const iframes = splitContainerEl.querySelectorAll(
-          `iframe[data-tab-id="${tab.id}"]`
-        );
-        iframes.forEach((iframe) => {
-          if (iframe.src !== url) {
-            iframe.src = url;
-          }
-        });
+        syncViewsForTab(tab.id, url);
 
         if (activeTabId === tabId) {
           addressInputEl.value = url;
@@ -760,7 +895,7 @@
           tab.historyIndex -= 1;
           const url = tab.history[tab.historyIndex];
           tab.currentUrl = url;
-          syncIframesForTab(tab.id, url);
+          syncViewsForTab(tab.id, url);
           addressInputEl.value = url;
           updateNavButtons();
           saveState();
@@ -774,21 +909,21 @@
           tab.historyIndex += 1;
           const url = tab.history[tab.historyIndex];
           tab.currentUrl = url;
-          syncIframesForTab(tab.id, url);
+          syncViewsForTab(tab.id, url);
           addressInputEl.value = url;
           updateNavButtons();
           saveState();
         }
       }
 
-      function syncIframesForTab(tabId, url) {
-        const iframes = splitContainerEl.querySelectorAll(
-          `iframe[data-tab-id="${tabId}"]`
+      function syncViewsForTab(tabId, url) {
+        const tab = getTab(tabId);
+        const views = splitContainerEl.querySelectorAll(
+          `.content-view[data-tab-id="${tabId}"]`
         );
-        iframes.forEach((iframe) => {
-          if (iframe.src !== url) {
-            iframe.src = url;
-          }
+        views.forEach((view) => {
+          view.dataset.tabId = tabId;
+          renderContent(view, url || (tab && tab.currentUrl) || "");
         });
       }
 
@@ -881,19 +1016,20 @@
             panelEl.style.flex = "1 1 0";
           }
 
-          const overlay = document.createElement("div");
-          overlay.className = "split-click-overlay";
-          overlay.addEventListener("click", () => {
+          panelEl.addEventListener("mousedown", () => {
             setActivePanel(panel.id);
           });
-          panelEl.appendChild(overlay);
 
-          const iframe = document.createElement("iframe");
-          iframe.dataset.panelId = panel.id;
-          iframe.dataset.tabId = panel.tabId || "";
+          const contentView = document.createElement("div");
+          contentView.className = "content-view";
+          contentView.dataset.panelId = panel.id;
+          contentView.dataset.tabId = panel.tabId || "";
           const tab = getTab(panel.tabId);
-          iframe.src = tab && tab.currentUrl ? tab.currentUrl : "about:blank";
-          panelEl.appendChild(iframe);
+          panelEl.appendChild(contentView);
+          renderContent(
+            contentView,
+            tab && tab.currentUrl ? tab.currentUrl : ""
+          );
 
           splitContainerEl.appendChild(panelEl);
 
@@ -1089,7 +1225,7 @@
         const restored = loadState();
         if (!restored) {
           // Default: one tab + one panel
-          const tab = createTab("Google", "https://www.google.com");
+          const tab = createTab("Example", DEFAULT_HOME);
           tabs = [tab]; // createTab already added, but keep it clear
           panels = [];
           createPanel(tab.id);
